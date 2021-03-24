@@ -10,6 +10,7 @@ import requests
 from requests.auth import AuthBase
 from requests_toolbelt import MultipartEncoder
 from functools import wraps
+from hashlib import sha256
 
 try:
     from .iaaa import IAAAClient
@@ -231,6 +232,7 @@ class PKURunnerClient(object):
     def upload_record_without_photo(self, record):
         """ 不带自拍，上传跑步记录
         """
+        abstract = sha256(f'{self.studentID}_{record.date}_781f5106781f5106'.encode('utf-8')).hexdigest()[:32]
         m = MultipartEncoder(
                 fields={
                     'userId': str(self.studentID),
@@ -239,6 +241,7 @@ class PKURunnerClient(object):
                     'detail': json.dumps(record.detail),             # 路径似乎并不会用来查重
                     'misc': json.dumps({"agent": "Android v1.2+"}),
                     'step': str(record.step),
+                    'abstract': abstract,
                 }
             )
         # self.logger.debug(record.__dict__)
