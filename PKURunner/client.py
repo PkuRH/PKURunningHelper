@@ -131,7 +131,7 @@ class PKURunnerClient(object):
     @property
     def headers(self):
         return {
-                "User-Agent": "okhttp/3.10.0",
+#                 "User-Agent": "okhttp/3.10.0",
             }
 
     def __request(self, method, url, verify_success=True, **kwargs):
@@ -232,10 +232,11 @@ class PKURunnerClient(object):
     def upload_record_without_photo(self, record):
         """ 不带自拍，上传跑步记录
         """
-        abstract = sha256(f'{self.studentID}_{record.date}_la3V1R1w'.encode('utf-8')).hexdigest()[:32]
+        abstract = sha256(f'{self.studentID}_{record.date}_XlQ1zscp'.encode('utf-8')).hexdigest()[:32]
         m = MultipartEncoder(
                 fields={
                     'duration': str(record.duration),
+                    'distance': str(record.distance),
                     'date': str(record.date),                        # 后端好像会根据日期来判断是否重复发包
                     'detail': json.dumps(record.detail),             # 路径似乎并不会用来查重
                     'misc': json.dumps({"agent": "Android v1.2+"}),
