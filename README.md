@@ -1,5 +1,7 @@
 # PKURunningHelper
 
+请自行承担使用不当造成的一切后果🧐
+
 该项目改写自学长的项目 [PKURunningHelper](https://github.com/zhongxinghong/PKURunningHelper)
 
 ## 依赖环境
