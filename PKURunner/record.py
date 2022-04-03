@@ -71,7 +71,7 @@ class Record(object):
         """ 获得时间戳
             格式 "2018-09-27T08:04:50.000Z"
         """
-        return int(time.time())
+        return int(time.time() * 1000)
 
     def __point_delta(self):
         """ 坐标随机偏移量
