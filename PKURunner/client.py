@@ -6,6 +6,7 @@
 #
 
 import os
+import uuid
 import requests
 from requests.auth import AuthBase
 from requests_toolbelt import MultipartEncoder
@@ -52,6 +53,31 @@ config = Config()
 
 __all__ = ["PKURunnerClient",]
 
+
+class CustomMultipartEncoder:
+    def __init__(self, data):
+        self.data = data
+        self.boundary = str(uuid.uuid4())
+    
+    def get_content_type(self):
+        return "multipart/form-data; boundary=%s" % self.boundary
+
+    def get_data(self):
+        resp = b""
+        for key in self.data:
+            data = self.data[key]
+            if isinstance(data, dict) or isinstance(data, list):
+                data = json.dumps(data, separators=(',', ':'))
+            data = json.dumps(data, separators=(',', ':')).encode('utf-8')
+            resp += b"--" + self.boundary.encode("utf-8") + b"\r\n"
+            resp += b"Content-Disposition: form-data; name=\"" + key.encode() + b"\"\r\n"
+            resp += b"Content-Transfer-Encoding: binary\r\n"
+            resp += b"Content-Type: application/json; charset=UTF-8\r\n"
+            resp += b"Content-Length: %d\r\n" % len(data)
+            resp += b"\r\n"
+            resp += data + b"\r\n"
+        resp += b"--" + self.boundary.encode("utf-8") + b"--\r\n"
+        return resp
 
 class PKURunnerAuth(AuthBase):
     """ PKURunner 鉴权类
@@ -131,7 +157,9 @@ class PKURunnerClient(object):
     @property
     def headers(self):
         return {
-#                 "User-Agent": "okhttp/3.10.0",
+                "Platform": "Android",
+                "ClientVersion": "1.22.0313",
+                "User-Agent": "okhttp/3.10.0",
             }
 
     def __request(self, method, url, verify_success=True, **kwargs):
@@ -155,7 +183,9 @@ class PKURunnerClient(object):
         headers = self.headers
         headers.update(kwargs.pop("headers", {}))
 
-        resp = requests.request(method, url, headers=headers, **kwargs)
+        req = requests.Request(method, url, headers=headers, **kwargs)
+        prepared = req.prepare()
+        resp = requests.Session().send(prepared)
 
         if not resp.ok:
             if resp.text == "Unauthorized":
@@ -233,23 +263,22 @@ class PKURunnerClient(object):
         """ 不带自拍，上传跑步记录
         """
         abstract = sha256(f'{self.studentID}_{record.date}_XlQ1zscp'.encode('utf-8')).hexdigest()[:32]
-        m = MultipartEncoder(
-                fields={
-                    'duration': str(record.duration),
-                    'distance': str(record.distance),
-                    'date': str(record.date),                        # 后端好像会根据日期来判断是否重复发包
-                    'detail': json.dumps(record.detail),             # 路径似乎并不会用来查重
-                    'misc': json.dumps({"agent": "Android v1.2+"}),
-                    'step': str(record.step),
-                    'abstract': abstract,
-                }
-            )
+        record.step = record.step // 17 * 17
+        m = CustomMultipartEncoder({
+            'duration': int(record.duration),
+            'distance': int(record.distance),
+            'date': int(record.date),                        # 后端好像会根据日期来判断是否重复发包
+            'detail': record.detail,                         # 路径似乎并不会用来查重
+            'misc': {"agent": "Android v1.2+"},
+            'step': int(record.step),
+            'abstract': str(abstract),
+        })
         # self.logger.debug(record.__dict__)
         # self.logger.debug(m.to_string()) # 注意！ m.to_string() 只能输出一次，第二次将会输出空字节，因此不要用这个方法来调试！
         # return
         respJson = self.post("record/{userId}".format(userId=self.studentID),
-            data = m.to_string(), headers = {
-                'Content-Type': m.content_type
+            data = m.get_data(), headers = {
+                'Content-Type': m.get_content_type()
             }, auth=self.auth)
 
         if not respJson["data"]["verified"]:
