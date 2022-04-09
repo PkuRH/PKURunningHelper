@@ -266,7 +266,7 @@ class PKURunnerClient(object):
         record.step = record.step // 17 * 17
         m = CustomMultipartEncoder({
             'duration': int(record.duration),
-            'distance': int(record.distance),
+            'distance': int(record.distance) * 1000,
             'date': int(record.date),                        # 后端好像会根据日期来判断是否重复发包
             'detail': record.detail,                         # 路径似乎并不会用来查重
             'misc': {"agent": "Android v1.2+"},
